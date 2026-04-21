@@ -3,8 +3,6 @@ from typing import Union
 from pyrogram import enums
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from config import OWNER_ID
-
 
 def queue_markup(
     _,
@@ -70,8 +68,8 @@ def aq_markup(_, chat_id):
     buttons = [
         [
             InlineKeyboardButton(
-                text=" Developer",
-                callback_data="developer_info",
+                text="👨‍💻 Developer",
+                url="https://t.me/KanhaaOp",
                 style=enums.ButtonStyle.PRIMARY,
             ),
         ],

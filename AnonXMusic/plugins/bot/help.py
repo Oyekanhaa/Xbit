@@ -2,7 +2,8 @@ import random
 from typing import Union
 
 from pyrogram import filters, types
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery, InputMediaPhoto
+from pyrogram.errors import MessageNotModified
 
 import config
 from AnonXMusic import app
@@ -75,6 +76,8 @@ SUDOER_HELP = """⚡ <b>Sudoer Commands</b>
 /stats - Display the bot & system stats
 /logs - Get the system logs"""
 
+HELP_MAIN_TEXT = "📚 <b>Help Menu</b>\n\nSelect a category below to explore detailed commands and their usage for managing, controlling, and customizing the bot."
+
 
 @app.on_message(filters.command(["help"]) & filters.private & ~BANNED_USERS)
 @app.on_callback_query(filters.regex("settings_back_helper") & ~BANNED_USERS)
@@ -87,23 +90,33 @@ async def helper_private(client, update: Union[types.Message, types.CallbackQuer
             pass
         try:
             await update.edit_message_caption(
-                caption="📚 <b>Help Menu</b>\n\nSelect a category below to explore detailed commands and their usage for managing, controlling, and customizing the bot.",
+                caption=HELP_MAIN_TEXT,
                 reply_markup=help_menu_markup(),
             )
+        except MessageNotModified:
+            pass
         except:
-            await update.edit_message_text(
-                text="📚 <b>Help Menu</b>\n\nSelect a category below to explore detailed commands and their usage for managing, controlling, and customizing the bot.",
-                reply_markup=help_menu_markup(),
-            )
+            try:
+                await update.edit_message_text(
+                    text=HELP_MAIN_TEXT,
+                    reply_markup=help_menu_markup(),
+                )
+            except MessageNotModified:
+                pass
     else:
         try:
             await update.delete()
         except:
             pass
-        await update.reply_photo(
-            photo=random.choice(config.START_IMG_URL),
-            caption="📚 <b>Help Menu</b>\n\nSelect a category below to explore detailed commands and their usage for managing, controlling, and customizing the bot.",
+        img_url = random.choice(config.START_IMG_URL)
+        # Send text first, then photo below — image appears after text
+        await update.reply_text(
+            text=HELP_MAIN_TEXT,
             reply_markup=help_menu_markup(),
+        )
+        await client.send_photo(
+            chat_id=update.chat.id,
+            photo=img_url,
         )
 
 
@@ -139,8 +152,13 @@ async def help_category_cb(client, callback: CallbackQuery):
             caption=text,
             reply_markup=help_category_markup(),
         )
+    except MessageNotModified:
+        pass
     except:
-        await callback.edit_message_text(
-            text=text,
-            reply_markup=help_category_markup(),
-        )
+        try:
+            await callback.edit_message_text(
+                text=text,
+                reply_markup=help_category_markup(),
+            )
+        except MessageNotModified:
+            pass

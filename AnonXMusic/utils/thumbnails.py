@@ -1,6 +1,5 @@
 import os
 import re
-import colorsys
 import aiohttp
 import aiofiles
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
@@ -9,12 +8,12 @@ from ytSearch import VideosSearch
 from config import YOUTUBE_IMG_URL
 
 # ══════════════════════════════════════════════════════════════
-#  CACHE & CONFIG (PREMIUM BLUR EDITION)
+#  CACHE & CONFIG
 # ══════════════════════════════════════════════════════════════
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
-SCALE_FACTOR = 2.0 
+SCALE_FACTOR = 2.0
 BASE_W, BASE_H = 1280, 720
 W, H = int(BASE_W * SCALE_FACTOR), int(BASE_H * SCALE_FACTOR)
 
@@ -34,14 +33,36 @@ def _trim(draw, text: str, font, max_w: int) -> str:
     try:
         if draw.textlength(text, font=font) <= max_w:
             return text
-        while len(text) > 1 and draw.textlength(text+"...", font=font) > max_w:
+        while len(text) > 1 and draw.textlength(text + "...", font=font) > max_w:
             text = text[:-1]
         return text + "..."
     except:
         return text[:25] + "..."
 
+
+def _get_dominant_warm_color(img: Image.Image):
+    """
+    Image ke center region se dominant warm/skin-tone color nikalta hai
+    Glow ke liye use hoga — exactly jaise Dil Chahta Hai screenshot mein hai
+    """
+    try:
+        small = img.resize((50, 50), Image.LANCZOS).convert("RGB")
+        pixels = list(small.getdata())
+        # Warm pixels filter karo (R > G > B roughly)
+        warm = [(r, g, b) for r, g, b in pixels if r > 100 and r > b]
+        if not warm:
+            return (255, 180, 120)  # fallback warm peach
+        avg_r = sum(p[0] for p in warm) // len(warm)
+        avg_g = sum(p[1] for p in warm) // len(warm)
+        avg_b = sum(p[2] for p in warm) // len(warm)
+        # Slightly boost warmth
+        return (min(255, avg_r + 30), avg_g, max(0, avg_b - 20))
+    except:
+        return (255, 180, 120)
+
+
 # ══════════════════════════════════════════════════════════════
-#  CORE IMAGE GENERATOR (BLURRED BACKGROUND + DARK GLOW)
+#  CORE IMAGE GENERATOR
 # ══════════════════════════════════════════════════════════════
 def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path):
     try:
@@ -49,42 +70,84 @@ def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path)
     except:
         art_orig = Image.new("RGB", (400, 400), (20, 20, 20))
 
-    # 1. BACKGROUND (Pure Blurred Image - No Solid Chocolate Color)
-    # Thumbnail ko full screen par stretch karke blur kar diya
-    bg = art_orig.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(s(50)))
+    # ── 1. BLURRED BACKGROUND ─────────────────────────────────
+    # Full image stretch + heavy blur — exactly like reference screenshot
+    bg = art_orig.resize((W, H), Image.LANCZOS)
     
-    # Dark overlay taaki text aur card "Pop" kare
-    dark_overlay = Image.new("RGBA", (W, H), (0, 0, 0, s(165))) 
+    # Step 1: Strong gaussian blur (jaise iOS music player bg hota hai)
+    bg = bg.filter(ImageFilter.GaussianBlur(radius=s(40)))
+    
+    # Step 2: Ek aur pass — aur smoothen karo
+    bg = bg.filter(ImageFilter.GaussianBlur(radius=s(20)))
+    
     bg = bg.convert("RGBA")
+    
+    # Step 3: Dark semi-transparent overlay — colors thodi dikh rahe ho but dim
+    dark_overlay = Image.new("RGBA", (W, H), (0, 0, 0, 175))
     bg.alpha_composite(dark_overlay)
 
-    # 2. IMAGE CARD SPECS
+    # ── 2. IMAGE CARD SPECS ───────────────────────────────────
     IMG_W, IMG_H = s(465), s(465)
     IMG_X, IMG_Y = s(85), s(130)
     RAD = s(55)
 
-    # --- DARK SHADOW / GLOW EFFECT ---
-    # Card ke peeche heavy blackish-neon shadow
-    shadow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    for i in range(5, 40, 5):
-        ImageDraw.Draw(shadow_layer).rounded_rectangle(
-            [IMG_X - s(i), IMG_Y - s(i), IMG_X + IMG_W + s(i), IMG_Y + IMG_H + s(i)], 
-            radius=RAD + s(i), fill=(0, 0, 0, s(120) // (i//5))
+    # ── 3. SOFT GLOWING SKIN EFFECT (Card ke around) ──────────
+    # Exactly jaise reference image mein card ke around warm peach/skin glow hai
+    
+    glow_color = _get_dominant_warm_color(art_orig)
+    gr, gg, gb = glow_color
+    
+    glow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    
+    # Outer glow — wide, soft, warm
+    # Multiple layers = smooth falloff like real glow
+    glow_steps = [
+        # (expand_px, alpha)
+        (s(80), 18),
+        (s(60), 28),
+        (s(45), 38),
+        (s(32), 52),
+        (s(22), 65),
+        (s(14), 80),
+        (s(8),  95),
+        (s(4),  110),
+    ]
+    
+    for expand, alpha in glow_steps:
+        ImageDraw.Draw(glow_layer).rounded_rectangle(
+            [
+                IMG_X - expand,
+                IMG_Y - expand,
+                IMG_X + IMG_W + expand,
+                IMG_Y + IMG_H + expand
+            ],
+            radius=RAD + expand,
+            fill=(gr, gg, gb, alpha)
         )
-    bg.alpha_composite(shadow_layer.filter(ImageFilter.GaussianBlur(s(25)))) 
+    
+    # Blur the entire glow layer — smooth/soft ho jaye
+    glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(radius=s(30)))
+    
+    # Glow composite onto background
+    bg.alpha_composite(glow_layer)
 
-    # --- MAIN CARD ---
+    # ── 4. MAIN CARD ──────────────────────────────────────────
     art = art_orig.resize((IMG_W, IMG_H), Image.LANCZOS).convert("RGBA")
     mask = Image.new("L", (IMG_W, IMG_H), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, IMG_W, IMG_H], radius=RAD, fill=255)
     art.putalpha(mask)
     bg.paste(art, (IMG_X, IMG_Y), art)
 
-    # Card Border (Halka White)
+    # Card Border — subtle white glow border (reference mein bhi tha)
     draw = ImageDraw.Draw(bg)
-    draw.rounded_rectangle([IMG_X, IMG_Y, IMG_X+IMG_W, IMG_Y+IMG_H], radius=RAD, outline=(255, 255, 255, 160), width=s(4))
+    draw.rounded_rectangle(
+        [IMG_X, IMG_Y, IMG_X + IMG_W, IMG_Y + IMG_H],
+        radius=RAD,
+        outline=(255, 255, 255, 140),
+        width=s(3)
+    )
 
-    # 3. TEXT SECTION
+    # ── 5. TEXT SECTION ───────────────────────────────────────
     TEXT_X = s(630)
     MAX_TW = W - TEXT_X - s(70)
 
@@ -97,33 +160,41 @@ def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path)
     draw.text((TEXT_X, s(315)), f"Artist: {channel}", font=f_info, fill=(220, 220, 220))
     draw.text((TEXT_X, s(380)), f"Views: {views_text}", font=f_info, fill=(220, 220, 220))
 
-    # 4. PROGRESS BAR
+    # ── 6. PROGRESS BAR ───────────────────────────────────────
     BAR_Y = s(510)
     BAR_W = W - TEXT_X - s(125)
     BAR_X1, BAR_X2 = TEXT_X, TEXT_X + BAR_W
 
-    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X2, BAR_Y+s(9)], radius=s(5), fill=(80, 80, 80, 180))
-    
+    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X2, BAR_Y + s(9)], radius=s(5), fill=(80, 80, 80, 180))
+
     fill_w = int(BAR_W * 0.45)
-    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X1 + fill_w, BAR_Y+s(9)], radius=s(5), fill=(255, 255, 255))
+    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X1 + fill_w, BAR_Y + s(9)], radius=s(5), fill=(255, 255, 255))
 
     knob_x = BAR_X1 + fill_w
-    draw.ellipse([knob_x-s(13), BAR_Y+s(4.5)-s(13), knob_x+s(13), BAR_Y+s(4.5)+s(13)], fill=(255, 255, 255))
+    draw.ellipse(
+        [knob_x - s(13), BAR_Y + s(4.5) - s(13), knob_x + s(13), BAR_Y + s(4.5) + s(13)],
+        fill=(255, 255, 255)
+    )
 
-    draw.text((BAR_X1, BAR_Y+s(35)), "01:20", font=f_time, fill=(200, 200, 200))
-    try: tw = int(draw.textlength(str(duration_text), font=f_time))
-    except: tw = s(90)
-    draw.text((BAR_X2 - tw, BAR_Y+s(35)), str(duration_text), font=f_time, fill=(200, 200, 200))
+    draw.text((BAR_X1, BAR_Y + s(35)), "01:20", font=f_time, fill=(200, 200, 200))
+    try:
+        tw = int(draw.textlength(str(duration_text), font=f_time))
+    except:
+        tw = s(90)
+    draw.text((BAR_X2 - tw, BAR_Y + s(35)), str(duration_text), font=f_time, fill=(200, 200, 200))
 
-    # 5. WATERMARK (Dev :- Kanha)
+    # ── 7. WATERMARK ──────────────────────────────────────────
     water_text = "Dev :- Kanha"
-    try: ww = int(draw.textlength(water_text, font=f_water))
-    except: ww = s(120)
+    try:
+        ww = int(draw.textlength(water_text, font=f_water))
+    except:
+        ww = s(120)
     draw.text((W - ww - s(50), H - s(60)), water_text, font=f_water, fill=(255, 255, 255, 140))
 
     # Final Save
     bg.convert("RGB").save(cache_path, "PNG")
     return cache_path
+
 
 # ══════════════════════════════════════════════════════════════
 #  PUBLIC API
@@ -134,15 +205,15 @@ async def get_thumb(videoid: str, user_id=None) -> str:
         return cache_path
 
     try:
-        results    = VideosSearch(f"https://www.youtube.com/watch?v={videoid}", limit=1)
-        search     = await results.next()
-        data       = search.get("result", [])[0]
-        
-        title      = re.sub(r"[\x00-\x1f\x7f]", "", data.get("title", "Unknown")).strip()
-        thumb_url  = data.get("thumbnails", [{}])[-1].get("url", YOUTUBE_IMG_URL).split("?")[0]
-        duration   = data.get("duration") or "0:00"
-        channel    = data.get("channel", {}).get("name", "YouTube")
-        
+        results   = VideosSearch(f"https://www.youtube.com/watch?v={videoid}", limit=1)
+        search    = await results.next()
+        data      = search.get("result", [])[0]
+
+        title     = re.sub(r"[\x00-\x1f\x7f]", "", data.get("title", "Unknown")).strip()
+        thumb_url = data.get("thumbnails", [{}])[-1].get("url", YOUTUBE_IMG_URL).split("?")[0]
+        duration  = data.get("duration") or "0:00"
+        channel   = data.get("channel", {}).get("name", "YouTube")
+
         views_raw  = data.get("viewCount", {}).get("text", "N/A")
         views_text = re.sub(r"\s*views?\s*", "", views_raw, flags=re.IGNORECASE).strip()
         views_text = f"{views_text} views" if views_text and views_text.upper() != "N/A" else "N/A"
@@ -157,12 +228,16 @@ async def get_thumb(videoid: str, user_id=None) -> str:
                 if resp.status == 200:
                     async with aiofiles.open(raw_path, "wb") as f:
                         await f.write(await resp.read())
-                else: return YOUTUBE_IMG_URL
-    except: return YOUTUBE_IMG_URL
+                else:
+                    return YOUTUBE_IMG_URL
+    except:
+        return YOUTUBE_IMG_URL
 
     try:
         result = _make_thumb(raw_path, title, channel, duration, views_text, cache_path)
-    except: result = YOUTUBE_IMG_URL
+    except:
+        result = YOUTUBE_IMG_URL
 
-    if os.path.exists(raw_path): os.remove(raw_path)
+    if os.path.exists(raw_path):
+        os.remove(raw_path)
     return result

@@ -40,7 +40,7 @@ def _trim(draw, text: str, font, max_w: int) -> str:
         return text[:25] + "..."
 
 
-def _draw_rainbow_border(draw, x1, y1, x2, y2, radius, thickness):
+def _draw_rainbow_border_OLD(draw, x1, y1, x2, y2, radius, thickness):
     """
     Card ke around rainbow/holographic gradient border draw karta hai
     Exactly jaise reference image mein blue→cyan→green→yellow lining thi
@@ -88,6 +88,32 @@ def _draw_rainbow_border(draw, x1, y1, x2, y2, radius, thickness):
             draw.ellipse([nx - 2, ny - 2, nx + 2, ny + 2], fill=color)
 
 
+def _draw_rainbow_border(layer: Image.Image, x1, y1, x2, y2, radius, thickness):
+    """
+    Proper rounded-rectangle rainbow border — circle bug nahi hoga.
+    Multiple concentric strokes with lerped colors = smooth gradient lining.
+    """
+    color_stops = [
+        (80,  120, 255),   # blue
+        (60,  220, 255),   # cyan
+        (100, 255, 120),   # green
+        (200, 255,  60),   # yellow-green
+        (255, 220,  80),   # yellow
+    ]
+    draw = ImageDraw.Draw(layer)
+    n = len(color_stops)
+    for i, color in enumerate(color_stops):
+        # Outermost se innermost tak — slight offset
+        o = thickness - i * (thickness // max(n - 1, 1))
+        stroke_w = max(s(3), thickness // (n - i))
+        draw.rounded_rectangle(
+            [x1 - o, y1 - o, x2 + o, y2 + o],
+            radius=radius + o,
+            outline=color + (230,),
+            width=stroke_w,
+        )
+
+
 # ══════════════════════════════════════════════════════════════
 #  CORE IMAGE GENERATOR
 # ══════════════════════════════════════════════════════════════
@@ -109,8 +135,8 @@ def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path)
     
     bg = bg.convert("RGBA")
     
-    # Step 3: Dark semi-transparent overlay — colors thodi dikh rahe ho but dim
-    dark_overlay = Image.new("RGBA", (W, H), (0, 0, 0, 175))
+    # Step 3: Halka dim overlay — thumbnail ke colors visible rahe, black na lage
+    dark_overlay = Image.new("RGBA", (W, H), (0, 0, 0, 110))
     bg.alpha_composite(dark_overlay)
 
     # ── 2. IMAGE CARD SPECS ───────────────────────────────────
@@ -164,9 +190,9 @@ def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path)
     # Rainbow lining layer
     rainbow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     _draw_rainbow_border(
-        ImageDraw.Draw(rainbow_layer),
+        rainbow_layer,
         IMG_X, IMG_Y, IMG_X + IMG_W, IMG_Y + IMG_H,
-        RAD, s(6)
+        RAD, s(8)
     )
     rainbow_layer = rainbow_layer.filter(ImageFilter.GaussianBlur(radius=s(2)))
     bg.alpha_composite(rainbow_layer)

@@ -42,11 +42,17 @@ async def start_pm(client, message: Message, _):
 
         # HELP
         if name.startswith("help"):
-            keyboard = help_pannel(_)
-            return await message.reply_photo(
+            from AnonXMusic.utils.inline.help import help_menu_markup
+            from AnonXMusic.plugins.bot.help import HELP_MAIN_TEXT
+            try:
+                await message.delete()
+            except:
+                pass
+            return await app.send_photo(
+                chat_id=message.chat.id,
                 photo=random.choice(config.START_IMG_URL),
-                caption=_["help_1"].format(config.SUPPORT_CHAT),
-                reply_markup=keyboard,
+                caption=HELP_MAIN_TEXT,
+                reply_markup=help_menu_markup(),
             )
 
         # SUDO LIST

@@ -238,7 +238,7 @@ async def del_back_playlist(client, CallbackQuery:CallbackQuery, _):
                     duration,
                     user,
                 ),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
@@ -274,7 +274,7 @@ async def del_back_playlist(client, CallbackQuery:CallbackQuery, _):
                     duration,
                     user,
                 ),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
@@ -289,7 +289,7 @@ async def del_back_playlist(client, CallbackQuery:CallbackQuery, _):
             run = await CallbackQuery.message.reply_photo(
                 photo=STREAM_IMG_URL,
                 caption=_["stream_2"].format(user),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
@@ -317,7 +317,7 @@ async def del_back_playlist(client, CallbackQuery:CallbackQuery, _):
                     caption=_["stream_1"].format(
                         SUPPORT_CHAT, title[:23], duration, user
                     ),
-                    reply_markup=InlineKeyboardMarkup(button),
+                    reply_markup=InlineKeyboardMarkup(button) if button else None,
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
@@ -330,7 +330,7 @@ async def del_back_playlist(client, CallbackQuery:CallbackQuery, _):
                     caption=_["stream_1"].format(
                         SUPPORT_CHAT, title[:23], duration, user
                     ),
-                    reply_markup=InlineKeyboardMarkup(button),
+                    reply_markup=InlineKeyboardMarkup(button) if button else None,
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
@@ -345,7 +345,7 @@ async def del_back_playlist(client, CallbackQuery:CallbackQuery, _):
                         duration,
                         user,
                     ),
-                    reply_markup=InlineKeyboardMarkup(button),
+                    reply_markup=InlineKeyboardMarkup(button) if button else None,
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"

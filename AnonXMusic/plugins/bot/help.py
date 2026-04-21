@@ -99,17 +99,13 @@ async def open_help_menu_cb(client, callback: CallbackQuery):
         await callback.answer()
     except:
         pass
-    chat_id = callback.message.chat.id
     try:
-        await callback.message.delete()
-    except:
+        await callback.edit_message_caption(
+            caption=HELP_MAIN_TEXT,
+            reply_markup=help_menu_markup(),
+        )
+    except Exception:
         pass
-    await app.send_photo(
-        chat_id=chat_id,
-        photo=random.choice(config.START_IMG_URL),
-        caption=HELP_MAIN_TEXT,
-        reply_markup=help_menu_markup(),
-    )
 
 
 # Back button from help menu — goes to start
@@ -135,7 +131,9 @@ async def back_to_help(client, callback: CallbackQuery):
         ]
         img_url = random.choice(config.START_IMG_URL)
         text = _["start_2"].format(mention, app.mention)
-        await callback.edit_message_text(
+        await callback.message.delete()
+        await app.send_message(
+            chat_id=chat_id,
             text=f"{text}\n\n<a href='{img_url}'>&#8205;</a>",
             reply_markup=InlineKeyboardMarkup(out),
             disable_web_page_preview=False,

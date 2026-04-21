@@ -11,7 +11,6 @@ from AnonXMusic.misc import SUDOERS
 from AnonXMusic.utils.database import get_lang
 from AnonXMusic.utils.decorators.language import LanguageStart
 from AnonXMusic.utils.inline.help import private_help_panel, help_menu_markup, help_category_markup
-from AnonXMusic.utils.inline.start import private_panel
 from config import BANNED_USERS, SUPPORT_CHAT
 from strings import get_string
 
@@ -125,7 +124,15 @@ async def back_to_help(client, callback: CallbackQuery):
         mention = callback.from_user.mention
         language = await get_lang(chat_id)
         _ = get_string(language)
-        out = private_panel(_)
+        from pyrogram.types import InlineKeyboardButton as IKB
+        out = [
+            [IKB(text=_["S_B_3"], url=f"https://t.me/{app.username}?startgroup=true")],
+            [IKB(text=_["S_B_4"], callback_data="open_help_menu")],
+            [
+                IKB(text=_["S_B_5"], url=config.SUPPORT_CHANNEL),
+                IKB(text=_["S_B_2"], url=config.SUPPORT_CHAT),
+            ],
+        ]
         img_url = random.choice(config.START_IMG_URL)
         text = _["start_2"].format(mention, app.mention)
         try:

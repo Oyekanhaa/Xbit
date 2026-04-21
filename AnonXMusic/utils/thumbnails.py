@@ -9,19 +9,26 @@ from ytSearch import VideosSearch
 from config import YOUTUBE_IMG_URL
 
 # ══════════════════════════════════════════════════════════════
-#  CACHE & CONFIG
+#  CACHE & CONFIG (VERSION 4 - PRO)
 # ══════════════════════════════════════════════════════════════
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
-W, H = 1280, 720
+# Scaling for High Quality (QHD)
+SCALE_FACTOR = 2.0 
+BASE_W, BASE_H = 1280, 720
+W, H = int(BASE_W * SCALE_FACTOR), int(BASE_H * SCALE_FACTOR)
 
 FONT_BOLD   = "AnonXMusic/assets/font2.ttf"
 FONT_NORMAL = "AnonXMusic/assets/font.ttf"
 
+def s(value):
+    """Scaling helper function"""
+    return int(value * SCALE_FACTOR)
+
 def _font(path: str, size: int) -> ImageFont.FreeTypeFont:
     try:
-        return ImageFont.truetype(path, size)
+        return ImageFont.truetype(path, s(size))
     except Exception:
         return ImageFont.load_default()
 
@@ -31,9 +38,9 @@ def _extract_palette(img: Image.Image):
     best_color, best_score = None, -1
     for px in pixels[::2]:
         r, g, b = px[0]/255.0, px[1]/255.0, px[2]/255.0
-        h, s, v = colorsys.rgb_to_hsv(r, g, b)
-        if v < 0.25 or s < 0.35: continue
-        score = s * v
+        h, s_val, v = colorsys.rgb_to_hsv(r, g, b)
+        if v < 0.25 or s_val < 0.35: continue
+        score = s_val * v
         if score > best_score:
             best_score = score
             best_color = (r, g, b)
@@ -58,7 +65,7 @@ def _clean_views_public(raw: str) -> str:
     return f"{cleaned} views" if cleaned else "N/A"
 
 # ══════════════════════════════════════════════════════════════
-#  CORE IMAGE GENERATOR (UPGRADED)
+#  CORE IMAGE GENERATOR (V4 + GLOW + WATERMARK)
 # ══════════════════════════════════════════════════════════════
 def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path):
     try:
@@ -67,24 +74,25 @@ def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path)
         art_orig = Image.new("RGB", (400, 400), (30, 20, 15))
 
     # 1. BACKGROUND (Blurred Glassmorphism)
-    bg = art_orig.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(55))
-    dark_overlay = Image.new("RGBA", (W, H), (15, 12, 10, 205))
+    bg = art_orig.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(s(55)))
+    dark_overlay = Image.new("RGBA", (W, H), (10, 8, 5, s(210))) 
     bg = bg.convert("RGBA")
     bg.alpha_composite(dark_overlay)
 
-    # 2. IMAGE CARD SPECS (Matching Screenshot)
-    IMG_W, IMG_H = 430, 430
-    IMG_X, IMG_Y = 90, 145
-    RAD = 48  # High quality rounded corners
+    # 2. IMAGE CARD SPECS (Larger V4 size)
+    IMG_W, IMG_H = s(465), s(465)
+    IMG_X, IMG_Y = s(85), s(130)
+    RAD = s(55)
 
-    # Neon/Glow Effect
+    # Advanced Neon/Soft Shadow Glow
     c_base = _extract_palette(art_orig)
+    glow_color = (*c_base, s(70))
     glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     ImageDraw.Draw(glow).rounded_rectangle(
-        [IMG_X-12, IMG_Y-12, IMG_X+IMG_W+12, IMG_Y+IMG_H+12], 
-        radius=RAD+5, fill=(*c_base, 50)
+        [IMG_X - s(18), IMG_Y - s(18), IMG_X + IMG_W + s(18), IMG_Y + IMG_H + s(18)], 
+        radius=RAD + s(10), fill=glow_color
     )
-    bg.alpha_composite(glow.filter(ImageFilter.GaussianBlur(15)))
+    bg.alpha_composite(glow.filter(ImageFilter.GaussianBlur(s(28)))) 
 
     # Main Thumbnail Paste
     art = art_orig.resize((IMG_W, IMG_H), Image.LANCZOS).convert("RGBA")
@@ -93,55 +101,59 @@ def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path)
     art.putalpha(mask)
     bg.paste(art, (IMG_X, IMG_Y), art)
 
-    # White Glossy Border
+    # High Quality Border
     draw = ImageDraw.Draw(bg)
-    draw.rounded_rectangle([IMG_X, IMG_Y, IMG_X+IMG_W, IMG_Y+IMG_H], radius=RAD, outline=(255, 255, 255, 190), width=4)
+    draw.rounded_rectangle([IMG_X, IMG_Y, IMG_X+IMG_W, IMG_Y+IMG_H], radius=RAD, outline=(255, 255, 255, 200), width=s(4))
 
-    # 3. TEXT SECTION (Right Panel Alignment)
-    TEXT_X = 630
-    MAX_TW = W - TEXT_X - 60
+    # 3. TEXT SECTION
+    TEXT_X = s(620)
+    MAX_TW = W - TEXT_X - s(70)
 
-    f_title = _font(FONT_BOLD, 78)    # Big Bold Title
-    f_info  = _font(FONT_NORMAL, 42)  # Artist/Views
-    f_time  = _font(FONT_BOLD, 33)    # Duration
+    f_title = _font(FONT_BOLD, 85)
+    f_info  = _font(FONT_NORMAL, 45)
+    f_time  = _font(FONT_BOLD, 38)
+    f_water = _font(FONT_NORMAL, 28) # Watermark font
 
-    # Render Text
-    draw.text((TEXT_X, 210), _trim(draw, title, f_title, MAX_TW), font=f_title, fill=(255, 255, 255))
-    draw.text((TEXT_X, 315), f"Artist: {channel}", font=f_info, fill=(195, 195, 195))
-    draw.text((TEXT_X, 375), f"Views: {views_text}", font=f_info, fill=(195, 195, 195))
+    draw.text((TEXT_X, s(205)), _trim(draw, title, f_title, MAX_TW), font=f_title, fill=(255, 255, 255))
+    draw.text((TEXT_X, s(320)), f"Artist: {channel}", font=f_info, fill=(210, 210, 210))
+    draw.text((TEXT_X, s(385)), f"Views: {views_text}", font=f_info, fill=(210, 210, 210))
 
-    # 4. PROGRESS BAR UI
-    BAR_Y = 495
-    BAR_W = W - TEXT_X - 110
+    # 4. PROGRESS BAR
+    BAR_Y = s(515)
+    BAR_W = W - TEXT_X - s(125)
     BAR_X1, BAR_X2 = TEXT_X, TEXT_X + BAR_W
+
+    # Track
+    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X2, BAR_Y+s(9)], radius=s(5), fill=(75, 75, 75, 180))
     
-    # Empty Track
-    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X2, BAR_Y+7], radius=4, fill=(85, 85, 85, 180))
-    
-    # Progress Fill (Approx 45%)
+    # Progress (Static 45% for preview)
     fill_w = int(BAR_W * 0.45)
-    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X1 + fill_w, BAR_Y+7], radius=4, fill=(255, 255, 255))
-    
-    # Slider Knob (White Circle)
+    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X1 + fill_w, BAR_Y+s(9)], radius=s(5), fill=(255, 255, 255))
+
+    # Slider Knob
     knob_x = BAR_X1 + fill_w
-    draw.ellipse([knob_x-10, BAR_Y-6, knob_x+10, BAR_Y+13], fill=(255, 255, 255))
+    draw.ellipse([knob_x-s(13), BAR_Y+s(4.5)-s(13), knob_x+s(13), BAR_Y+s(4.5)+s(13)], fill=(255, 255, 255))
 
     # Time Stamps
-    draw.text((BAR_X1, BAR_Y+25), "01:20", font=f_time, fill=(185, 185, 185))
+    draw.text((BAR_X1, BAR_Y+s(35)), "01:20", font=f_time, fill=(190, 190, 190))
     
     dur_str = str(duration_text)
-    try:
-        tw = int(draw.textlength(dur_str, font=f_time))
-    except:
-        tw = 80
-    draw.text((BAR_X2 - tw, BAR_Y+25), dur_str, font=f_time, fill=(185, 185, 185))
+    try: tw = int(draw.textlength(dur_str, font=f_time))
+    except: tw = s(90)
+    draw.text((BAR_X2 - tw, BAR_Y+s(35)), dur_str, font=f_time, fill=(190, 190, 190))
 
-    # Save PNG
+    # 5. WATERMARK
+    water_text = "Dev :- Kanha"
+    try: ww = int(draw.textlength(water_text, font=f_water))
+    except: ww = s(120)
+    draw.text((W - ww - s(50), H - s(60)), water_text, font=f_water, fill=(255, 255, 255, 140))
+
+    # Final Save
     bg.convert("RGB").save(cache_path, "PNG")
     return cache_path
 
 # ══════════════════════════════════════════════════════════════
-#  PUBLIC API FOR BOT
+#  PUBLIC API
 # ══════════════════════════════════════════════════════════════
 async def get_thumb(videoid: str, user_id=None) -> str:
     cache_path = os.path.join(CACHE_DIR, f"{videoid}.png")
@@ -168,24 +180,12 @@ async def get_thumb(videoid: str, user_id=None) -> str:
                 if resp.status == 200:
                     async with aiofiles.open(raw_path, "wb") as f:
                         await f.write(await resp.read())
-                else:
-                    return YOUTUBE_IMG_URL
-    except:
-        return YOUTUBE_IMG_URL
+                else: return YOUTUBE_IMG_URL
+    except: return YOUTUBE_IMG_URL
 
     try:
-        result = _make_thumb(
-            raw_path      = raw_path,
-            title         = title,
-            channel       = channel,
-            duration_text = duration,
-            views_text    = views_text,
-            cache_path    = cache_path,
-        )
-    except:
-        result = YOUTUBE_IMG_URL
+        result = _make_thumb(raw_path, title, channel, duration, views_text, cache_path)
+    except: result = YOUTUBE_IMG_URL
 
-    if os.path.exists(raw_path):
-        os.remove(raw_path)
-
+    if os.path.exists(raw_path): os.remove(raw_path)
     return result

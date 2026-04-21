@@ -68,7 +68,7 @@ def aq_markup(_, chat_id):
     buttons = [
         [
             InlineKeyboardButton(
-                text="👨‍💻 Developer",
+                text=" Developer",
                 url="https://t.me/KanhaaOp",
                 style=enums.ButtonStyle.PRIMARY,
             ),

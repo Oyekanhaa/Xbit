@@ -23,6 +23,7 @@ from AnonXMusic.utils.inline import close_markup, stream_markup, stream_markup_t
 from AnonXMusic.utils.thumbnails import get_thumb
 from config import (
     BANNED_USERS,
+    OWNER_ID,
     SOUNCLOUD_IMG_URL,
     STREAM_IMG_URL,
     SUPPORT_CHAT,
@@ -397,3 +398,14 @@ async def markup_timer():
 
 
 asyncio.create_task(markup_timer())
+
+
+@app.on_callback_query(filters.regex("developer_info") & ~BANNED_USERS)
+async def developer_info_callback(client, CallbackQuery: CallbackQuery):
+    try:
+        await CallbackQuery.answer(
+            f" Developer\n\nᴛᴀᴘ ʜᴇʀᴇ ᴛᴏ ᴄᴏɴᴛᴀᴄᴛ:\ntg://user?id={OWNER_ID}",
+            show_alert=True,
+        )
+    except:
+        pass

@@ -2,14 +2,14 @@ import random
 from typing import Union
 
 from pyrogram import filters, types
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery, InputMediaPhoto
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 from pyrogram.errors import MessageNotModified
 
 import config
 from AnonXMusic import app
 from AnonXMusic.misc import SUDOERS
 from AnonXMusic.utils.database import get_lang
-from AnonXMusic.utils.decorators.language import LanguageStart, languageCB
+from AnonXMusic.utils.decorators.language import LanguageStart
 from AnonXMusic.utils.inline.help import private_help_panel, help_menu_markup, help_category_markup
 from config import BANNED_USERS, SUPPORT_CHAT
 from strings import get_string
@@ -80,44 +80,35 @@ HELP_MAIN_TEXT = "📚 <b>Help Menu</b>\n\nSelect a category below to explore de
 
 
 @app.on_message(filters.command(["help"]) & filters.private & ~BANNED_USERS)
-@app.on_callback_query(filters.regex("settings_back_helper") & ~BANNED_USERS)
-async def helper_private(client, update: Union[types.Message, types.CallbackQuery]):
-    is_callback = isinstance(update, types.CallbackQuery)
-    if is_callback:
-        try:
-            await update.answer()
-        except:
-            pass
-        try:
-            await update.edit_message_caption(
-                caption=HELP_MAIN_TEXT,
-                reply_markup=help_menu_markup(),
-            )
-        except MessageNotModified:
-            pass
-        except:
-            try:
-                await update.edit_message_text(
-                    text=HELP_MAIN_TEXT,
-                    reply_markup=help_menu_markup(),
-                )
-            except MessageNotModified:
-                pass
-    else:
-        try:
-            await update.delete()
-        except:
-            pass
-        img_url = random.choice(config.START_IMG_URL)
-        # Send text first, then photo below — image appears after text
-        await update.reply_text(
-            text=HELP_MAIN_TEXT,
+async def help_command(client, message: Message):
+    try:
+        await message.delete()
+    except:
+        pass
+    await client.send_photo(
+        chat_id=message.chat.id,
+        photo=random.choice(config.START_IMG_URL),
+        caption=HELP_MAIN_TEXT,
+        reply_markup=help_menu_markup(),
+    )
+
+
+# Back button — message is a photo, so edit_message_caption
+@app.on_callback_query(filters.regex("^settings_back_helper$") & ~BANNED_USERS)
+async def back_to_help(client, callback: CallbackQuery):
+    try:
+        await callback.answer()
+    except:
+        pass
+    try:
+        await callback.edit_message_caption(
+            caption=HELP_MAIN_TEXT,
             reply_markup=help_menu_markup(),
         )
-        await client.send_photo(
-            chat_id=update.chat.id,
-            photo=img_url,
-        )
+    except MessageNotModified:
+        pass
+    except Exception:
+        pass
 
 
 @app.on_message(filters.command(["help"]) & filters.group & ~BANNED_USERS)
@@ -154,11 +145,3 @@ async def help_category_cb(client, callback: CallbackQuery):
         )
     except MessageNotModified:
         pass
-    except:
-        try:
-            await callback.edit_message_text(
-                text=text,
-                reply_markup=help_category_markup(),
-            )
-        except MessageNotModified:
-            pass

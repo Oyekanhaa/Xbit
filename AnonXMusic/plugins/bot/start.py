@@ -125,7 +125,13 @@ async def start_pm(client, message: Message, _):
     else:
         out = private_panel(_)
 
-        await message.reply_photo(
+        try:
+            await message.delete()
+        except:
+            pass
+
+        await app.send_photo(
+            chat_id=message.chat.id,
             photo=random.choice(config.START_IMG_URL),
             caption=_["start_2"].format(message.from_user.mention, app.mention),
             reply_markup=InlineKeyboardMarkup(out),
@@ -150,7 +156,13 @@ async def start_gp(client, message: Message, _):
     uptime = int(time.time() - _boot_)
 
     try:
-        await message.reply_photo(
+        try:
+            await message.delete()
+        except:
+            pass
+
+        await app.send_photo(
+            chat_id=message.chat.id,
             photo=random.choice(config.START_IMG_URL),
             caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
             reply_markup=InlineKeyboardMarkup(out),
@@ -163,7 +175,8 @@ async def start_gp(client, message: Message, _):
     except SlowmodeWait as e:
         await asyncio.sleep(e.value)
         try:
-            await message.reply_photo(
+            await app.send_photo(
+                chat_id=message.chat.id,
                 photo=random.choice(config.START_IMG_URL),
                 caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
                 reply_markup=InlineKeyboardMarkup(out),

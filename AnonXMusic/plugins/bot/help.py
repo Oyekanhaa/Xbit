@@ -11,6 +11,7 @@ from AnonXMusic.misc import SUDOERS
 from AnonXMusic.utils.database import get_lang
 from AnonXMusic.utils.decorators.language import LanguageStart
 from AnonXMusic.utils.inline.help import private_help_panel, help_menu_markup, help_category_markup
+from AnonXMusic.utils.inline.start import private_panel
 from config import BANNED_USERS, SUPPORT_CHAT
 from strings import get_string
 
@@ -93,7 +94,7 @@ async def help_command(client, message: Message):
     )
 
 
-# Back button — goes back to help main menu
+# Back button — deletes help message and sends fresh start message
 @app.on_callback_query(filters.regex("^settings_back_helper$") & ~BANNED_USERS)
 async def back_to_help(client, callback: CallbackQuery):
     try:
@@ -101,20 +102,20 @@ async def back_to_help(client, callback: CallbackQuery):
     except:
         pass
     try:
-        await callback.edit_message_text(
-            text=HELP_MAIN_TEXT,
-            reply_markup=help_menu_markup(),
+        language = await get_lang(callback.message.chat.id)
+        _ = get_string(language)
+        out = private_panel(_)
+        img_url = random.choice(config.START_IMG_URL)
+        text = _["start_2"].format(callback.from_user.mention, app.mention)
+        await callback.message.delete()
+        await app.send_message(
+            chat_id=callback.message.chat.id,
+            text=f"{text}\n\n<a href='{img_url}'>&#8205;</a>",
+            reply_markup=InlineKeyboardMarkup(out),
+            disable_web_page_preview=False,
         )
-    except MessageNotModified:
-        pass
     except Exception:
-        try:
-            await callback.edit_message_caption(
-                caption=HELP_MAIN_TEXT,
-                reply_markup=help_menu_markup(),
-            )
-        except:
-            pass
+        pass
 
 
 @app.on_message(filters.command(["help"]) & filters.group & ~BANNED_USERS)

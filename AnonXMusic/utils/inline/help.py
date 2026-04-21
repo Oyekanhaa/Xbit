@@ -1,51 +1,34 @@
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import InlineKeyboardButton
 
+import config
 from AnonXMusic import app
 
 
-def help_menu_markup():
-    return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🛠 Admins", callback_data="help_cat_admin"),
-            InlineKeyboardButton("🌍 Public", callback_data="help_cat_public"),
-        ],
-        [
-            InlineKeyboardButton("👑 Owner", callback_data="help_cat_owner"),
-            InlineKeyboardButton("⚡ Sudoers", callback_data="help_cat_sudoer"),
-        ],
-        [
-            InlineKeyboardButton("⬅️ Back", callback_data="settings_back_helper"),
-        ],
-    ])
-
-
-# Alias for backward compatibility (used in start.py)
-def help_pannel(_, is_sudo=False, START=None):
-    return help_menu_markup()
-
-
-def help_category_markup():
-    return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("⬅️ Back", callback_data="settings_back_helper"),
-        ]
-    ])
-
-
-def help_back_markup(_):
-    return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("⬅️ Back", callback_data="settings_back_helper"),
-        ]
-    ])
-
-
-def private_help_panel(_):
-    return [
+def start_panel(_):
+    buttons = [
         [
             InlineKeyboardButton(
-                text=_["S_B_4"],
-                url=f"https://t.me/{app.username}?start=help",
+                text=_["S_B_1"], url=f"https://t.me/{app.username}?startgroup=true"
             ),
+            InlineKeyboardButton(text=_["S_B_2"], url=config.SUPPORT_CHAT),
         ],
     ]
+    return buttons
+
+
+def private_panel(_):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=_["S_B_3"],
+                url=f"https://t.me/{app.username}?startgroup=true",
+            )
+        ],
+        [InlineKeyboardButton(text=_["S_B_4"], callback_data="open_help_menu")],
+        [
+            InlineKeyboardButton(text=_["S_B_5"], url=config.SUPPORT_CHANNEL),
+            InlineKeyboardButton(text=_["S_B_2"], url=config.SUPPORT_CHAT),
+        ],
+    ]
+    
+    return buttons

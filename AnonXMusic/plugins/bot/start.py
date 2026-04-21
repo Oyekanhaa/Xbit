@@ -131,11 +131,6 @@ async def start_pm(client, message: Message, _):
     else:
         out = private_panel(_)
 
-        try:
-            await message.delete()
-        except:
-            pass
-
         img_url = random.choice(config.START_IMG_URL)
         text = _["start_2"].format(message.from_user.mention, app.mention)
 
@@ -165,11 +160,6 @@ async def start_gp(client, message: Message, _):
     uptime = int(time.time() - _boot_)
 
     try:
-        try:
-            await message.delete()
-        except:
-            pass
-
         img_url = random.choice(config.START_IMG_URL)
         text = _["start_1"].format(app.mention, get_readable_time(uptime))
 

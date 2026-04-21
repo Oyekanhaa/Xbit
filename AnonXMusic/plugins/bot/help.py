@@ -94,6 +94,24 @@ async def help_command(client, message: Message):
     )
 
 
+@app.on_callback_query(filters.regex("^open_help_menu$") & ~BANNED_USERS)
+async def open_help_menu_cb(client, callback: CallbackQuery):
+    try:
+        await callback.answer()
+    except:
+        pass
+    try:
+        await callback.message.delete()
+    except:
+        pass
+    await app.send_photo(
+        chat_id=callback.message.chat.id,
+        photo=random.choice(config.START_IMG_URL),
+        caption=HELP_MAIN_TEXT,
+        reply_markup=help_menu_markup(),
+    )
+
+
 # Back button — deletes help message and sends fresh start message
 @app.on_callback_query(filters.regex("^settings_back_helper$") & ~BANNED_USERS)
 async def back_to_help(client, callback: CallbackQuery):

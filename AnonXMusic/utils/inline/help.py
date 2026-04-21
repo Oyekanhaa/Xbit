@@ -27,7 +27,7 @@ def help_pannel(_, is_sudo=False, START=None):
 def help_category_markup():
     return InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("⬅️ Back", callback_data="settings_back_helper"),
+            InlineKeyboardButton("⬅️ Back", callback_data="back_to_help_menu"),
         ]
     ])
 

@@ -40,25 +40,52 @@ def _trim(draw, text: str, font, max_w: int) -> str:
         return text[:25] + "..."
 
 
-def _get_dominant_warm_color(img: Image.Image):
+def _draw_rainbow_border(draw, x1, y1, x2, y2, radius, thickness):
     """
-    Image ke center region se dominant warm/skin-tone color nikalta hai
-    Glow ke liye use hoga — exactly jaise Dil Chahta Hai screenshot mein hai
+    Card ke around rainbow/holographic gradient border draw karta hai
+    Exactly jaise reference image mein blue→cyan→green→yellow lining thi
     """
-    try:
-        small = img.resize((50, 50), Image.LANCZOS).convert("RGB")
-        pixels = list(small.getdata())
-        # Warm pixels filter karo (R > G > B roughly)
-        warm = [(r, g, b) for r, g, b in pixels if r > 100 and r > b]
-        if not warm:
-            return (255, 180, 120)  # fallback warm peach
-        avg_r = sum(p[0] for p in warm) // len(warm)
-        avg_g = sum(p[1] for p in warm) // len(warm)
-        avg_b = sum(p[2] for p in warm) // len(warm)
-        # Slightly boost warmth
-        return (min(255, avg_r + 30), avg_g, max(0, avg_b - 20))
-    except:
-        return (255, 180, 120)
+    import math
+    # Rainbow color stops (blue → cyan → green → yellow → back)
+    stops = [
+        (0.00,  (80,  120, 255)),   # blue
+        (0.20,  (60,  220, 255)),   # cyan
+        (0.45,  (100, 255, 120)),   # green
+        (0.70,  (200, 255,  60)),   # yellow-green
+        (0.85,  (255, 220,  80)),   # yellow
+        (1.00,  (80,  120, 255)),   # back to blue
+    ]
+
+    def lerp_color(t):
+        for i in range(len(stops) - 1):
+            t0, c0 = stops[i]
+            t1, c1 = stops[i + 1]
+            if t0 <= t <= t1:
+                f = (t - t0) / (t1 - t0)
+                return tuple(int(c0[j] + (c1[j] - c0[j]) * f) for j in range(3))
+        return stops[-1][1]
+
+    # Perimeter ke saath segments draw karo
+    cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+    w, h = x2 - x1, y2 - y1
+    total_steps = 360
+
+    for i in range(total_steps):
+        t = i / total_steps
+        angle = 2 * math.pi * t
+
+        # Rounded rect boundary point calculate karo
+        cos_a, sin_a = math.cos(angle), math.sin(angle)
+        # Scale to ellipse then clamp to rounded rect
+        ex = cx + (w / 2) * cos_a
+        ey = cy + (h / 2) * sin_a
+
+        color = lerp_color(t) + (255,)
+
+        for th in range(thickness):
+            nx = cx + ((w / 2) - th) * cos_a
+            ny = cy + ((h / 2) - th) * sin_a
+            draw.ellipse([nx - 2, ny - 2, nx + 2, ny + 2], fill=color)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -91,45 +118,32 @@ def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path)
     IMG_X, IMG_Y = s(85), s(130)
     RAD = s(55)
 
-    # ── 3. SOFT GLOWING SKIN EFFECT (Card ke around) ──────────
-    # Exactly jaise reference image mein card ke around warm peach/skin glow hai
-    
-    glow_color = _get_dominant_warm_color(art_orig)
-    gr, gg, gb = glow_color
-    
-    glow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    
-    # Outer glow — wide, soft, warm
-    # Multiple layers = smooth falloff like real glow
-    glow_steps = [
-        # (expand_px, alpha)
-        (s(80), 18),
-        (s(60), 28),
-        (s(45), 38),
-        (s(32), 52),
-        (s(22), 65),
-        (s(14), 80),
-        (s(8),  95),
-        (s(4),  110),
+    # ── 3. WHITE SOFT SHADOW + RAINBOW BORDER ────────────────
+
+    # --- WHITE GLOW SHADOW (card ke peeche, pure white, soft) ---
+    shadow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    white_glow_steps = [
+        (s(55), 12),
+        (s(40), 22),
+        (s(28), 38),
+        (s(18), 58),
+        (s(10), 80),
+        (s(5),  105),
+        (s(2),  130),
     ]
-    
-    for expand, alpha in glow_steps:
-        ImageDraw.Draw(glow_layer).rounded_rectangle(
+    for expand, alpha in white_glow_steps:
+        ImageDraw.Draw(shadow_layer).rounded_rectangle(
             [
                 IMG_X - expand,
                 IMG_Y - expand,
                 IMG_X + IMG_W + expand,
-                IMG_Y + IMG_H + expand
+                IMG_Y + IMG_H + expand,
             ],
             radius=RAD + expand,
-            fill=(gr, gg, gb, alpha)
+            fill=(255, 255, 255, alpha),
         )
-    
-    # Blur the entire glow layer — smooth/soft ho jaye
-    glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(radius=s(30)))
-    
-    # Glow composite onto background
-    bg.alpha_composite(glow_layer)
+    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=s(22)))
+    bg.alpha_composite(shadow_layer)
 
     # ── 4. MAIN CARD ──────────────────────────────────────────
     art = art_orig.resize((IMG_W, IMG_H), Image.LANCZOS).convert("RGBA")
@@ -138,14 +152,25 @@ def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path)
     art.putalpha(mask)
     bg.paste(art, (IMG_X, IMG_Y), art)
 
-    # Card Border — subtle white glow border (reference mein bhi tha)
+    # Rainbow holographic border — exactly jaise reference image mein tha
     draw = ImageDraw.Draw(bg)
+    # Pehle ek thin white inner border
     draw.rounded_rectangle(
-        [IMG_X, IMG_Y, IMG_X + IMG_W, IMG_Y + IMG_H],
-        radius=RAD,
-        outline=(255, 255, 255, 140),
-        width=s(3)
+        [IMG_X + s(3), IMG_Y + s(3), IMG_X + IMG_W - s(3), IMG_Y + IMG_H - s(3)],
+        radius=RAD - s(3),
+        outline=(255, 255, 255, 80),
+        width=s(2),
     )
+    # Rainbow lining layer
+    rainbow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    _draw_rainbow_border(
+        ImageDraw.Draw(rainbow_layer),
+        IMG_X, IMG_Y, IMG_X + IMG_W, IMG_Y + IMG_H,
+        RAD, s(6)
+    )
+    rainbow_layer = rainbow_layer.filter(ImageFilter.GaussianBlur(radius=s(2)))
+    bg.alpha_composite(rainbow_layer)
+    draw = ImageDraw.Draw(bg)  # redraw after composite
 
     # ── 5. TEXT SECTION ───────────────────────────────────────
     TEXT_X = s(630)

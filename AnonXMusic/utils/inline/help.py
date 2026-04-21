@@ -13,6 +13,9 @@ def help_menu_markup():
             InlineKeyboardButton("👑 Owner", callback_data="help_cat_owner"),
             InlineKeyboardButton("⚡ Sudoers", callback_data="help_cat_sudoer"),
         ],
+        [
+            InlineKeyboardButton("⬅️ Back", callback_data="settings_back_helper"),
+        ],
     ])
 
 

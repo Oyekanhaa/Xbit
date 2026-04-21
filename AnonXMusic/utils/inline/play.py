@@ -60,8 +60,8 @@ def stream_markup_timer(_, chat_id, played, dur):
 style=enums.ButtonStyle.PRIMARY,
             )
         ],
-        
-
+     
+return buttons
 
 def playlist_markup(_, videoid, user_id, ptype, channel, fplay):
     buttons = [

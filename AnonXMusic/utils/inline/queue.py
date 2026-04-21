@@ -70,7 +70,7 @@ def aq_markup(_, chat_id):
     buttons = [
         [
             InlineKeyboardButton(
-                text="👨‍💻 Developer",
+                text=" Developer",
                 callback_data="developer_info",
                 style=enums.ButtonStyle.PRIMARY,
             ),

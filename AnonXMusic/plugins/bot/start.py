@@ -130,11 +130,14 @@ async def start_pm(client, message: Message, _):
         except:
             pass
 
-        await app.send_photo(
+        img_url = random.choice(config.START_IMG_URL)
+        text = _["start_2"].format(message.from_user.mention, app.mention)
+
+        await app.send_message(
             chat_id=message.chat.id,
-            photo=random.choice(config.START_IMG_URL),
-            caption=_["start_2"].format(message.from_user.mention, app.mention),
+            text=f"{text}\n\n<a href='{img_url}'>&#8205;</a>",
             reply_markup=InlineKeyboardMarkup(out),
+            disable_web_page_preview=False,
         )
 
         if await is_on_off(2) and LOGGER_ID:
@@ -161,11 +164,14 @@ async def start_gp(client, message: Message, _):
         except:
             pass
 
-        await app.send_photo(
+        img_url = random.choice(config.START_IMG_URL)
+        text = _["start_1"].format(app.mention, get_readable_time(uptime))
+
+        await app.send_message(
             chat_id=message.chat.id,
-            photo=random.choice(config.START_IMG_URL),
-            caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
+            text=f"{text}\n\n<a href='{img_url}'>&#8205;</a>",
             reply_markup=InlineKeyboardMarkup(out),
+            disable_web_page_preview=False,
         )
         return await add_served_chat(message.chat.id)
 
@@ -175,11 +181,13 @@ async def start_gp(client, message: Message, _):
     except SlowmodeWait as e:
         await asyncio.sleep(e.value)
         try:
-            await app.send_photo(
+            img_url = random.choice(config.START_IMG_URL)
+            text = _["start_1"].format(app.mention, get_readable_time(uptime))
+            await app.send_message(
                 chat_id=message.chat.id,
-                photo=random.choice(config.START_IMG_URL),
-                caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
+                text=f"{text}\n\n<a href='{img_url}'>&#8205;</a>",
                 reply_markup=InlineKeyboardMarkup(out),
+                disable_web_page_preview=False,
             )
             return await add_served_chat(message.chat.id)
         except:

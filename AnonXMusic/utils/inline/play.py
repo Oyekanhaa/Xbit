@@ -1,3 +1,4 @@
+⏤⵿⵿꯭꤫꤫︭⛦⃕͜▇▇═.ۗۗ𝄟͢•꯭๋๋๋๋๋๋๋๋๋๋๋๋๋๋♥️꯭⃝⃨⃜⃝꯭ ̶꯭𝅥ͦ𝆬🦋⃟꯭ ⃪꯭𝐊𝖠𝖭𝖧𝖠˶͟❤️꯭:
 import math
 from pyrogram import enums
 from pyrogram.types import InlineKeyboardButton
@@ -60,8 +61,30 @@ def stream_markup_timer(_, chat_id, played, dur):
 style=enums.ButtonStyle.PRIMARY,
             )
         ],
-     
-return buttons
+       # [   
+            InlineKeyboardButton(text="▷", callback_data=f"ADMIN Resume|{chat_id}"),
+            InlineKeyboardButton(text="II", callback_data=f"ADMIN Pause|{chat_id}"),
+            InlineKeyboardButton(text="↻", callback_data=f"ADMIN Replay|{chat_id}"),
+            InlineKeyboardButton(text="‣‣I", callback_data=f"ADMIN Skip|{chat_id}"),
+            InlineKeyboardButton(text="▢", callback_data=f"ADMIN Stop|{chat_id}"),
+        ],
+    ]
+
+    return buttons
+
+
+def stream_markup(_, chat_id):
+    buttons = [
+        [
+            InlineKeyboardButton(text="▷", callback_data=f"ADMIN Resume|{chat_id}"),
+            InlineKeyboardButton(text="II", callback_data=f"ADMIN Pause|{chat_id}"),
+            InlineKeyboardButton(text="↻", callback_data=f"ADMIN Replay|{chat_id}"),
+            InlineKeyboardButton(text="‣‣I", callback_data=f"ADMIN Skip|{chat_id}"),
+            InlineKeyboardButton(text="▢", callback_data=f"ADMIN Stop|{chat_id}"),
+        ],
+    ]
+    return buttons
+
 
 def playlist_markup(_, videoid, user_id, ptype, channel, fplay):
     buttons = [
@@ -101,7 +124,6 @@ def livestream_markup(_, videoid, user_id, mode, channel, fplay):
         ],
     ]
     return buttons
-
 
 def slider_markup(_, videoid, user_id, query, query_type, channel, fplay):
     query = f"{query[:20]}"

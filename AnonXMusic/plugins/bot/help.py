@@ -135,15 +135,10 @@ async def back_to_help(client, callback: CallbackQuery):
         ]
         img_url = random.choice(config.START_IMG_URL)
         text = _["start_2"].format(mention, app.mention)
-        try:
-            await callback.message.delete()
-        except:
-            pass
-        await app.send_photo(
-            chat_id=chat_id,
-            photo=img_url,
-            caption=text,
+        await callback.edit_message_text(
+            text=f"{text}\n\n<a href='{img_url}'>&#8205;</a>",
             reply_markup=InlineKeyboardMarkup(out),
+            disable_web_page_preview=False,
         )
     except Exception:
         pass

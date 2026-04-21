@@ -100,12 +100,13 @@ async def open_help_menu_cb(client, callback: CallbackQuery):
         await callback.answer()
     except:
         pass
+    chat_id = callback.message.chat.id
     try:
         await callback.message.delete()
     except:
         pass
     await app.send_photo(
-        chat_id=callback.message.chat.id,
+        chat_id=chat_id,
         photo=random.choice(config.START_IMG_URL),
         caption=HELP_MAIN_TEXT,
         reply_markup=help_menu_markup(),
@@ -120,14 +121,19 @@ async def back_to_help(client, callback: CallbackQuery):
     except:
         pass
     try:
-        language = await get_lang(callback.message.chat.id)
+        chat_id = callback.message.chat.id
+        mention = callback.from_user.mention
+        language = await get_lang(chat_id)
         _ = get_string(language)
         out = private_panel(_)
         img_url = random.choice(config.START_IMG_URL)
-        text = _["start_2"].format(callback.from_user.mention, app.mention)
-        await callback.message.delete()
+        text = _["start_2"].format(mention, app.mention)
+        try:
+            await callback.message.delete()
+        except:
+            pass
         await app.send_message(
-            chat_id=callback.message.chat.id,
+            chat_id=chat_id,
             text=f"{text}\n\n<a href='{img_url}'>&#8205;</a>",
             reply_markup=InlineKeyboardMarkup(out),
             disable_web_page_preview=False,

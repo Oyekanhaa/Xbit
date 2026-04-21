@@ -125,10 +125,15 @@ async def start_pm(client, message: Message, _):
     else:
         out = private_panel(_)
 
-        await message.reply_photo(
-            photo=random.choice(config.START_IMG_URL),
-            caption=_["start_2"].format(message.from_user.mention, app.mention),
+        img_url = random.choice(config.START_IMG_URL)
+        caption = _["start_2"].format(message.from_user.mention, app.mention)
+        # Invisible link trick: image appears inline inside the message
+        caption_with_img = f"<a href="{img_url}">&#8203;</a>{caption}"
+
+        await message.reply_text(
+            text=caption_with_img,
             reply_markup=InlineKeyboardMarkup(out),
+            disable_web_page_preview=False,
         )
 
         if await is_on_off(2) and LOGGER_ID:

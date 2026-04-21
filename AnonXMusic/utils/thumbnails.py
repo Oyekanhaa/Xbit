@@ -9,7 +9,7 @@ from ytSearch import VideosSearch
 from config import YOUTUBE_IMG_URL
 
 # ══════════════════════════════════════════════════════════════
-#  CACHE & CONFIG (VERSION 4 - PRO)
+#  CACHE & CONFIG (CHOCOLATE EDITION - V4 PRO)
 # ══════════════════════════════════════════════════════════════
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -45,7 +45,7 @@ def _extract_palette(img: Image.Image):
             best_score = score
             best_color = (r, g, b)
     if best_color is None:
-        return (180, 180, 180)
+        return (210, 105, 30) # Chocolate Orange Fallback
     return tuple(int(x*255) for x in best_color)
 
 def _trim(draw, text: str, font, max_w: int) -> str:
@@ -65,34 +65,38 @@ def _clean_views_public(raw: str) -> str:
     return f"{cleaned} views" if cleaned else "N/A"
 
 # ══════════════════════════════════════════════════════════════
-#  CORE IMAGE GENERATOR (V4 + GLOW + WATERMARK)
+#  CORE IMAGE GENERATOR (CHOCOLATE + NEON GLOW)
 # ══════════════════════════════════════════════════════════════
 def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path):
     try:
         art_orig = Image.open(raw_path).convert("RGB")
     except:
-        art_orig = Image.new("RGB", (400, 400), (30, 20, 15))
+        art_orig = Image.new("RGB", (400, 400), (60, 30, 20))
 
-    # 1. BACKGROUND (Blurred Glassmorphism)
+    # 1. BACKGROUND (Chocolate Glassmorphism)
     bg = art_orig.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(s(55)))
-    dark_overlay = Image.new("RGBA", (W, H), (10, 8, 5, s(210))) 
+    # Deep Chocolate Brown Overlay (R:45, G:25, B:15)
+    chocolate_overlay = Image.new("RGBA", (W, H), (45, 25, 15, s(210))) 
     bg = bg.convert("RGBA")
-    bg.alpha_composite(dark_overlay)
+    bg.alpha_composite(chocolate_overlay)
 
-    # 2. IMAGE CARD SPECS (Larger V4 size)
+    # 2. IMAGE CARD SPECS
     IMG_W, IMG_H = s(465), s(465)
     IMG_X, IMG_Y = s(85), s(130)
     RAD = s(55)
 
-    # Advanced Neon/Soft Shadow Glow
+    # Advanced Neon Glow Effect
     c_base = _extract_palette(art_orig)
-    glow_color = (*c_base, s(70))
     glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(glow).rounded_rectangle(
-        [IMG_X - s(18), IMG_Y - s(18), IMG_X + IMG_W + s(18), IMG_Y + IMG_H + s(18)], 
-        radius=RAD + s(10), fill=glow_color
-    )
-    bg.alpha_composite(glow.filter(ImageFilter.GaussianBlur(s(28)))) 
+    
+    # Layered Shadow for "Glow" depth
+    for i in range(5, 35, 5):
+        ImageDraw.Draw(glow).rounded_rectangle(
+            [IMG_X - s(i), IMG_Y - s(i), IMG_X + IMG_W + s(i), IMG_Y + IMG_H + s(i)], 
+            radius=RAD + s(i), fill=(*c_base, s(40))
+        )
+    
+    bg.alpha_composite(glow.filter(ImageFilter.GaussianBlur(s(25)))) 
 
     # Main Thumbnail Paste
     art = art_orig.resize((IMG_W, IMG_H), Image.LANCZOS).convert("RGBA")
@@ -101,9 +105,9 @@ def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path)
     art.putalpha(mask)
     bg.paste(art, (IMG_X, IMG_Y), art)
 
-    # High Quality Border
+    # Border
     draw = ImageDraw.Draw(bg)
-    draw.rounded_rectangle([IMG_X, IMG_Y, IMG_X+IMG_W, IMG_Y+IMG_H], radius=RAD, outline=(255, 255, 255, 200), width=s(4))
+    draw.rounded_rectangle([IMG_X, IMG_Y, IMG_X+IMG_W, IMG_Y+IMG_H], radius=RAD, outline=(255, 255, 255, 180), width=s(5))
 
     # 3. TEXT SECTION
     TEXT_X = s(620)
@@ -112,41 +116,41 @@ def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path)
     f_title = _font(FONT_BOLD, 85)
     f_info  = _font(FONT_NORMAL, 45)
     f_time  = _font(FONT_BOLD, 38)
-    f_water = _font(FONT_NORMAL, 28) # Watermark font
+    f_water = _font(FONT_NORMAL, 28)
 
     draw.text((TEXT_X, s(205)), _trim(draw, title, f_title, MAX_TW), font=f_title, fill=(255, 255, 255))
-    draw.text((TEXT_X, s(320)), f"Artist: {channel}", font=f_info, fill=(210, 210, 210))
-    draw.text((TEXT_X, s(385)), f"Views: {views_text}", font=f_info, fill=(210, 210, 210))
+    draw.text((TEXT_X, s(320)), f"Artist: {channel}", font=f_info, fill=(230, 230, 230))
+    draw.text((TEXT_X, s(385)), f"Views: {views_text}", font=f_info, fill=(230, 230, 230))
 
     # 4. PROGRESS BAR
     BAR_Y = s(515)
     BAR_W = W - TEXT_X - s(125)
     BAR_X1, BAR_X2 = TEXT_X, TEXT_X + BAR_W
 
-    # Track
-    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X2, BAR_Y+s(9)], radius=s(5), fill=(75, 75, 75, 180))
-    
-    # Progress (Static 45% for preview)
+    # Darker Brown Track
+    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X2, BAR_Y+s(9)], radius=s(5), fill=(80, 50, 40, 180))
+
+    # Creamy White Progress
     fill_w = int(BAR_W * 0.45)
-    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X1 + fill_w, BAR_Y+s(9)], radius=s(5), fill=(255, 255, 255))
+    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X1 + fill_w, BAR_Y+s(9)], radius=s(5), fill=(255, 230, 200))
 
     # Slider Knob
     knob_x = BAR_X1 + fill_w
     draw.ellipse([knob_x-s(13), BAR_Y+s(4.5)-s(13), knob_x+s(13), BAR_Y+s(4.5)+s(13)], fill=(255, 255, 255))
 
     # Time Stamps
-    draw.text((BAR_X1, BAR_Y+s(35)), "01:20", font=f_time, fill=(190, 190, 190))
-    
+    draw.text((BAR_X1, BAR_Y+s(35)), "01:20", font=f_time, fill=(210, 190, 180))
+
     dur_str = str(duration_text)
     try: tw = int(draw.textlength(dur_str, font=f_time))
     except: tw = s(90)
-    draw.text((BAR_X2 - tw, BAR_Y+s(35)), dur_str, font=f_time, fill=(190, 190, 190))
+    draw.text((BAR_X2 - tw, BAR_Y+s(35)), dur_str, font=f_time, fill=(210, 190, 180))
 
     # 5. WATERMARK
     water_text = "Dev :- Kanha"
     try: ww = int(draw.textlength(water_text, font=f_water))
     except: ww = s(120)
-    draw.text((W - ww - s(50), H - s(60)), water_text, font=f_water, fill=(255, 255, 255, 140))
+    draw.text((W - ww - s(50), H - s(60)), water_text, font=f_water, fill=(255, 255, 255, 130))
 
     # Final Save
     bg.convert("RGB").save(cache_path, "PNG")

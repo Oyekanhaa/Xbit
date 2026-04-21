@@ -19,6 +19,11 @@ def help_menu_markup():
     ])
 
 
+# Alias for backward compatibility (used in start.py)
+def help_pannel(_, is_sudo=False, START=None):
+    return help_menu_markup()
+
+
 def help_category_markup():
     return InlineKeyboardMarkup([
         [

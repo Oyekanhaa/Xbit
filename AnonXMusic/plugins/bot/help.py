@@ -113,7 +113,7 @@ async def open_help_menu_cb(client, callback: CallbackQuery):
     )
 
 
-# Back button — deletes help message and sends fresh start message
+# Back button from help menu — goes to start
 @app.on_callback_query(filters.regex("^settings_back_helper$") & ~BANNED_USERS)
 async def back_to_help(client, callback: CallbackQuery):
     try:
@@ -132,12 +132,30 @@ async def back_to_help(client, callback: CallbackQuery):
             await callback.message.delete()
         except:
             pass
-        await app.send_message(
+        await app.send_photo(
             chat_id=chat_id,
-            text=f"{text}\n\n<a href='{img_url}'>&#8205;</a>",
+            photo=img_url,
+            caption=text,
             reply_markup=InlineKeyboardMarkup(out),
-            disable_web_page_preview=False,
         )
+    except Exception:
+        pass
+
+
+# Back button from category — goes back to help main menu
+@app.on_callback_query(filters.regex("^back_to_help_menu$") & ~BANNED_USERS)
+async def back_to_help_menu(client, callback: CallbackQuery):
+    try:
+        await callback.answer()
+    except:
+        pass
+    try:
+        await callback.edit_message_caption(
+            caption=HELP_MAIN_TEXT,
+            reply_markup=help_menu_markup(),
+        )
+    except MessageNotModified:
+        pass
     except Exception:
         pass
 

@@ -422,7 +422,7 @@ class Call(PyTgCalls):
                         check[0]["dur"],
                         user,
                     ),
-                    reply_markup=InlineKeyboardMarkup(button),
+                    reply_markup=InlineKeyboardMarkup(button) if button else None,
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
@@ -470,7 +470,7 @@ class Call(PyTgCalls):
                         check[0]["dur"],
                         user,
                     ),
-                    reply_markup=InlineKeyboardMarkup(button),
+                    reply_markup=InlineKeyboardMarkup(button) if button else None,
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
@@ -496,7 +496,7 @@ class Call(PyTgCalls):
                     chat_id=original_chat_id,
                     photo=config.STREAM_IMG_URL,
                     caption=_["stream_2"].format(user),
-                    reply_markup=InlineKeyboardMarkup(button),
+                    reply_markup=InlineKeyboardMarkup(button) if button else None,
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
@@ -530,7 +530,7 @@ class Call(PyTgCalls):
                         caption=_["stream_1"].format(
                             config.SUPPORT_CHAT, title[:23], check[0]["dur"], user
                         ),
-                        reply_markup=InlineKeyboardMarkup(button),
+                        reply_markup=InlineKeyboardMarkup(button) if button else None,
                     )
                     db[chat_id][0]["mystic"] = run
                     db[chat_id][0]["markup"] = "tg"
@@ -542,7 +542,7 @@ class Call(PyTgCalls):
                         caption=_["stream_1"].format(
                             config.SUPPORT_CHAT, title[:23], check[0]["dur"], user
                         ),
-                        reply_markup=InlineKeyboardMarkup(button),
+                        reply_markup=InlineKeyboardMarkup(button) if button else None,
                     )
                     db[chat_id][0]["mystic"] = run
                     db[chat_id][0]["markup"] = "tg"
@@ -558,7 +558,7 @@ class Call(PyTgCalls):
                             check[0]["dur"],
                             user,
                         ),
-                        reply_markup=InlineKeyboardMarkup(button),
+                        reply_markup=InlineKeyboardMarkup(button) if button else None,
                     )
                     db[chat_id][0]["mystic"] = run
                     db[chat_id][0]["markup"] = "stream"

@@ -5,7 +5,7 @@ import aiohttp
 import aiofiles
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-from py_yt import VideosSearch
+from ytSearch import VideosSearch
 from config import YOUTUBE_IMG_URL
 
 # ══════════════════════════════════════════════════════════════

@@ -2,6 +2,8 @@ from pyrogram.types import InlineKeyboardButton
 
 import config
 from AnonXMusic import app
+from pyrogram import enums
+
 
 
 def start_panel(_):
@@ -9,6 +11,7 @@ def start_panel(_):
         [
             InlineKeyboardButton(
                 text=_["S_B_1"], url=f"https://t.me/{app.username}?startgroup=true"
+style=enums.ButtonStyle.PRIMARY,
             ),
             InlineKeyboardButton(text=_["S_B_2"], url=config.SUPPORT_CHAT),
         ],

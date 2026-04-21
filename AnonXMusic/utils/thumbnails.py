@@ -9,11 +9,12 @@ from ytSearch import VideosSearch
 from config import YOUTUBE_IMG_URL
 
 # ══════════════════════════════════════════════════════════════
-#  CACHE & CONFIG (DARK SHADOW + BLUR BG EDITION)
+#  CACHE & CONFIG (VERSION 3.5 - BLURRED BACKGROUND ONLY)
 # ══════════════════════════════════════════════════════════════
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
+# Scaling for High Quality (QHD)
 SCALE_FACTOR = 2.0 
 BASE_W, BASE_H = 1280, 720
 W, H = int(BASE_W * SCALE_FACTOR), int(BASE_H * SCALE_FACTOR)
@@ -22,6 +23,7 @@ FONT_BOLD   = "AnonXMusic/assets/font2.ttf"
 FONT_NORMAL = "AnonXMusic/assets/font.ttf"
 
 def s(value):
+    """Scaling helper function"""
     return int(value * SCALE_FACTOR)
 
 def _font(path: str, size: int) -> ImageFont.FreeTypeFont:
@@ -40,19 +42,31 @@ def _trim(draw, text: str, font, max_w: int) -> str:
     except:
         return text[:25] + "..."
 
+def _clean_views_public(raw: str) -> str:
+    if not raw or raw.strip().upper() == "N/A":
+        return "N/A"
+    # Matches strings like "82M views" and extracts only digits/letters
+    cleaned = re.sub(r"\s*views?\s*", "", raw, flags=re.IGNORECASE).strip()
+    return f"{cleaned} views" if cleaned else "N/A"
+
 # ══════════════════════════════════════════════════════════════
-#  CORE IMAGE GENERATOR (BLUR BG + DARK DEEP SHADOW)
+#  CORE IMAGE GENERATOR (NEW BLURRED BACKGROUND LOGIC)
 # ══════════════════════════════════════════════════════════════
 def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path):
     try:
         art_orig = Image.open(raw_path).convert("RGB")
     except:
-        art_orig = Image.new("RGB", (400, 400), (20, 20, 20))
+        art_orig = Image.new("RGB", (400, 400), (30, 20, 15))
 
-    # 1. BACKGROUND (Original Thumbnail Blurred - No Solid Chocolate)
-    bg = art_orig.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(s(45)))
-    # Dark overlay taaki text saaf dikhe
-    dark_overlay = Image.new("RGBA", (W, H), (0, 0, 0, s(160))) 
+    # 1. BACKGROUND (Pure Blurred Image - No Solid Colors)
+    # Resize to fill the entire canvas
+    bg = art_orig.resize((W, H), Image.LANCZOS)
+    
+    # Heavy blur for glassmorphism background effect
+    bg = bg.filter(ImageFilter.GaussianBlur(s(40)))
+    
+    # Dark overlay to ensure contrast
+    dark_overlay = Image.new("RGBA", (W, H), (10, 8, 5, s(190))) 
     bg = bg.convert("RGBA")
     bg.alpha_composite(dark_overlay)
 
@@ -61,71 +75,76 @@ def _make_thumb(raw_path, title, channel, duration_text, views_text, cache_path)
     IMG_X, IMG_Y = s(85), s(130)
     RAD = s(55)
 
-    # --- DARK DEEP SHADOW EFFECT ---
-    # glowing ko hata kar deep black shadow layers banayi hain
-    shadow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    for i in range(5, 45, 8):
-        # Shadow opacity aur spread ko adjust kiya hai for "Dark Glow" feel
-        opacity = int(180 - (i * 3))
-        if opacity < 0: opacity = 0
-        ImageDraw.Draw(shadow_layer).rounded_rectangle(
-            [IMG_X - s(i), IMG_Y - s(i), IMG_X + IMG_W + s(i), IMG_Y + IMG_H + s(i)], 
-            radius=RAD + s(i), fill=(0, 0, 0, opacity)
-        )
-    # Shadow ko smooth karne ke liye blur
-    bg.alpha_composite(shadow_layer.filter(ImageFilter.GaussianBlur(s(25)))) 
+    # Glow Layer (Uses extracted color from image - slightly adjusted for blur bg)
+    # (Extracting again to make logic cleaner)
+    c_base = (180, 180, 180) # default
+    try:
+        small  = art_orig.convert("RGB").resize((40, 40), Image.NEAREST)
+        pixels = list(small.getdata())
+        best_color, best_score = None, -1
+        for px in pixels:
+            r, g, b = px[0]/255.0, px[1]/255.0, px[2]/255.0
+            h, s_val, v = colorsys.rgb_to_hsv(r, g, b)
+            if v < 0.25 or s_val < 0.35: continue
+            score = s_val * v
+            if score > best_score:
+                best_score = score
+                best_color = (r, g, b)
+        if best_color:
+            c_base = tuple(int(x*255) for x in best_color)
+    except: pass
+    
+    glow_color = (*c_base, s(80))
+    glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(glow).rounded_rectangle(
+        [IMG_X - s(15), IMG_Y - s(15), IMG_X + IMG_W + s(15), IMG_Y + IMG_H + s(15)], 
+        radius=RAD + s(10), fill=glow_color
+    )
+    # Glassmorphism/Glow needs heavy blur
+    bg.alpha_composite(glow.filter(ImageFilter.GaussianBlur(s(25)))) 
 
-    # --- MAIN CARD ---
+    # Main Thumbnail Paste
     art = art_orig.resize((IMG_W, IMG_H), Image.LANCZOS).convert("RGBA")
     mask = Image.new("L", (IMG_W, IMG_H), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, IMG_W, IMG_H], radius=RAD, fill=255)
     art.putalpha(mask)
     bg.paste(art, (IMG_X, IMG_Y), art)
 
-    # Card Border
+    # Simple border around card
     draw = ImageDraw.Draw(bg)
-    draw.rounded_rectangle([IMG_X, IMG_Y, IMG_X+IMG_W, IMG_Y+IMG_H], radius=RAD, outline=(255, 255, 255, 150), width=s(4))
+    draw.rounded_rectangle([IMG_X, IMG_Y, IMG_X+IMG_W, IMG_Y+IMG_H], radius=RAD, outline=(255, 255, 255, 180), width=s(3))
 
     # 3. TEXT SECTION
-    TEXT_X = s(630)
+    TEXT_X = s(620)
     MAX_TW = W - TEXT_X - s(70)
 
     f_title = _font(FONT_BOLD, 85)
     f_info  = _font(FONT_NORMAL, 45)
-    f_time  = _font(FONT_NORMAL, 38)
-    f_water = _font(FONT_NORMAL, 28)
+    f_time  = _font(FONT_BOLD, 38)
 
-    draw.text((TEXT_X, s(200)), _trim(draw, title, f_title, MAX_TW), font=f_title, fill=(255, 255, 255))
-    draw.text((TEXT_X, s(315)), f"Artist: {channel}", font=f_info, fill=(220, 220, 220))
-    draw.text((TEXT_X, s(380)), f"Views: {views_text}", font=f_info, fill=(220, 220, 220))
+    draw.text((TEXT_X, s(205)), _trim(draw, title, f_title, MAX_TW), font=f_title, fill=(255, 255, 255))
+    draw.text((TEXT_X, s(320)), f"Artist: {channel}", font=f_info, fill=(210, 210, 210))
+    draw.text((TEXT_X, s(385)), f"Views: {views_text}", font=f_info, fill=(210, 210, 210))
 
     # 4. PROGRESS BAR
-    BAR_Y = s(510)
+    BAR_Y = s(515)
     BAR_W = W - TEXT_X - s(125)
     BAR_X1, BAR_X2 = TEXT_X, TEXT_X + BAR_W
 
-    # Darker Track
-    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X2, BAR_Y+s(9)], radius=s(5), fill=(60, 60, 60, 180))
+    draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X2, BAR_Y+s(9)], radius=s(5), fill=(75, 75, 75, 180))
     
-    # Progress (White)
-    fill_w = int(BAR_W * 0.45)
+    fill_w = int(BAR_W * 0.45) # Preview at 45%
     draw.rounded_rectangle([BAR_X1, BAR_Y, BAR_X1 + fill_w, BAR_Y+s(9)], radius=s(5), fill=(255, 255, 255))
 
-    # Knob
     knob_x = BAR_X1 + fill_w
     draw.ellipse([knob_x-s(13), BAR_Y+s(4.5)-s(13), knob_x+s(13), BAR_Y+s(4.5)+s(13)], fill=(255, 255, 255))
 
-    # Timestamps
-    draw.text((BAR_X1, BAR_Y+s(35)), "01:20", font=f_time, fill=(200, 200, 200))
-    try: tw = int(draw.textlength(str(duration_text), font=f_time))
-    except: tw = s(90)
-    draw.text((BAR_X2 - tw, BAR_Y+s(35)), str(duration_text), font=f_time, fill=(200, 200, 200))
+    draw.text((BAR_X1, BAR_Y+s(35)), "01:20", font=f_time, fill=(190, 190, 190))
 
-    # 5. WATERMARK
-    water_text = "Dev :- Kanha"
-    try: ww = int(draw.textlength(water_text, font=f_water))
-    except: ww = s(120)
-    draw.text((W - ww - s(50), H - s(60)), water_text, font=f_water, fill=(255, 255, 255, 130))
+    dur_str = str(duration_text)
+    try: tw = int(draw.textlength(dur_str, font=f_time))
+    except: tw = s(90)
+    draw.text((BAR_X2 - tw, BAR_Y+s(35)), dur_str, font=f_time, fill=(190, 190, 190))
 
     # Final Save
     bg.convert("RGB").save(cache_path, "PNG")
@@ -143,16 +162,12 @@ async def get_thumb(videoid: str, user_id=None) -> str:
         results    = VideosSearch(f"https://www.youtube.com/watch?v={videoid}", limit=1)
         search     = await results.next()
         data       = search.get("result", [])[0]
-        
-        title      = re.sub(r"[\x00-\x1f\x7f]", "", data.get("title", "Unknown Title")).strip()
+        title      = re.sub(r"[\x00-\x1f\x7f]", "", data.get("title", "Unknown")).strip()
         thumb_url  = data.get("thumbnails", [{}])[-1].get("url", YOUTUBE_IMG_URL).split("?")[0]
         duration   = data.get("duration") or "0:00"
         channel    = data.get("channel", {}).get("name", "YouTube")
-        
-        views_raw  = data.get("viewCount", {}).get("text", "N/A")
-        views_text = re.sub(r"\s*views?\s*", "", views_raw, flags=re.IGNORECASE).strip()
-        views_text = f"{views_text} views" if views_text and views_text.upper() != "N/A" else "N/A"
-
+        views_raw  = data.get("viewCount", {}).get("short", "N/A")
+        views_text = _clean_views_public(views_raw)
     except Exception:
         return YOUTUBE_IMG_URL
 

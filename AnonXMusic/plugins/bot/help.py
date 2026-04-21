@@ -93,7 +93,7 @@ async def help_command(client, message: Message):
     )
 
 
-# Back button — message is a photo, so edit_message_caption
+# Back button — goes back to help main menu
 @app.on_callback_query(filters.regex("^settings_back_helper$") & ~BANNED_USERS)
 async def back_to_help(client, callback: CallbackQuery):
     try:
@@ -101,14 +101,20 @@ async def back_to_help(client, callback: CallbackQuery):
     except:
         pass
     try:
-        await callback.edit_message_caption(
-            caption=HELP_MAIN_TEXT,
+        await callback.edit_message_text(
+            text=HELP_MAIN_TEXT,
             reply_markup=help_menu_markup(),
         )
     except MessageNotModified:
         pass
     except Exception:
-        pass
+        try:
+            await callback.edit_message_caption(
+                caption=HELP_MAIN_TEXT,
+                reply_markup=help_menu_markup(),
+            )
+        except:
+            pass
 
 
 @app.on_message(filters.command(["help"]) & filters.group & ~BANNED_USERS)

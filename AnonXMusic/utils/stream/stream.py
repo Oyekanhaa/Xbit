@@ -109,7 +109,7 @@ async def stream(
                         duration_min,
                         user_name,
                     ),
-                    reply_markup=InlineKeyboardMarkup(button),
+                    reply_markup=InlineKeyboardMarkup(button) if button else None,
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
@@ -160,7 +160,7 @@ async def stream(
             await app.send_message(
                 chat_id=original_chat_id,
                 text=_["queue_4"].format(position, title[:27], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
         else:
             if not forceplay:
@@ -195,7 +195,7 @@ async def stream(
                     duration_min,
                     user_name,
                 ),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
@@ -220,7 +220,7 @@ async def stream(
             await app.send_message(
                 chat_id=original_chat_id,
                 text=_["queue_4"].format(position, title[:27], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
         else:
             if not forceplay:
@@ -245,7 +245,7 @@ async def stream(
                 caption=_["stream_1"].format(
                     config.SUPPORT_CHAT, title[:23], duration_min, user_name
                 ),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
@@ -272,7 +272,7 @@ async def stream(
             await app.send_message(
                 chat_id=original_chat_id,
                 text=_["queue_4"].format(position, title[:27], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
         else:
             if not forceplay:
@@ -297,7 +297,7 @@ async def stream(
                 original_chat_id,
                 photo=config.TELEGRAM_VIDEO_URL if video else config.TELEGRAM_AUDIO_URL,
                 caption=_["stream_1"].format(link, title[:23], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
@@ -325,7 +325,7 @@ async def stream(
             await app.send_message(
                 chat_id=original_chat_id,
                 text=_["queue_4"].format(position, title[:27], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
         else:
             if not forceplay:
@@ -363,7 +363,7 @@ async def stream(
                     duration_min,
                     user_name,
                 ),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
@@ -386,7 +386,7 @@ async def stream(
             button = aq_markup(_, chat_id)
             await mystic.edit_text(
                 text=_["queue_4"].format(position, title[:27], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
         else:
             if not forceplay:
@@ -413,7 +413,7 @@ async def stream(
                 original_chat_id,
                 photo=config.STREAM_IMG_URL,
                 caption=_["stream_2"].format(user_name),
-                reply_markup=InlineKeyboardMarkup(button),
+                reply_markup=InlineKeyboardMarkup(button) if button else None,
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"

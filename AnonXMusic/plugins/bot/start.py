@@ -127,8 +127,7 @@ async def start_pm(client, message: Message, _):
 
         img_url = random.choice(config.START_IMG_URL)
         caption = _["start_2"].format(message.from_user.mention, app.mention)
-        # Invisible link trick: image appears inline inside the message
-        caption_with_img = f"<a href="{img_url}">&#8203;</a>{caption}"
+        caption_with_img = "<a href='" + img_url + "'>&#8203;</a>" + caption
 
         await message.reply_text(
             text=caption_with_img,
